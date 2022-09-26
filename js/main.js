@@ -74,9 +74,10 @@ function sourceforceApi(url) {
 }
 
 function showStats(data) {
-    var err = false;
+    var gh_err = false;
+    var sf_err = false;
     var errMessage = '';
-    project = 'bonita'
+    project = $("#sourceforge").val();
     var today = new Date();  
     today = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     date = "?start_date=2009-08-20&end_date=" + today
@@ -84,31 +85,41 @@ function showStats(data) {
 
     let sfmainproject = sourceforceApi(sfProjectUrl)
     if(data.status == 404) {
-        err = true;
-        errMessage = "The project does not exist!";
+        gh_err = true;
+        errMessage = "The Github project does not exist!";
     }
     else if(data.status == 403) {
-        err = true;
+        gh_err = true;
         errMessage = "You've exceeded GitHub's rate limiting.<br />Please try again in about an hour.";
     }
     else if(data.status == 0) {
-        err = true;
+        gh_err = true;
         errMessage = "Network Error when attempting to fetch GitHub's resource";
     }
 
     if(data.length == 0) {
-        err = true;
+        gh_err = true;
         errMessage = getQueryVariable("page") > 1 ? "No more releases" : "There are no releases for this project";
     }
+
+    if(sfmainproject.status == 404) {
+        sf_err = true;
+        errMessage = "The Sourcefoge project does not exist!";
+    }  else if(sfmainproject.status != 200) {
+        gh_err = true;
+        errMessage = "Error when attempting to fetch GitHub's resource. Check console log";
+    }
+
 
     var html_gh = "";
     var html_sf = "";
 
-    if(err) {
-        var html_err = "<div class='alert alert-danger output'>" + errMessage + "</div>";
-        if(sfmainproject.status != 200) {
-            errMessage = "Error when attempting to fetch Sourceforge's resource";
-            html_err += "<div class='alert alert-danger output'>" + errMessage + "</div>";
+    if(sf_err || gh_err) {
+        if(gh_err) {
+            var html_err = "<div class='alert alert-danger output'>" + errMessage + "</div>";
+        }
+        if(sf_err) {
+            var html_err = "<div class='alert alert-danger output'>" + errMessage + "</div>";
         }
         var resultDiv_err = $("#message");
         resultDiv_err.html(html_err);
@@ -161,8 +172,7 @@ function showStats(data) {
                     var lastUpdate = asset.updated_at.split("T")[0];
 
                     downloadInfoHTML += "<li><code>" + asset.name + "</code> (" + assetSize + "&nbsp;MiB) - " +
-                        "downloaded " + formatNumber(asset.download_count) + "&nbsp;times. " +
-                        "Last&nbsp;updated&nbsp;on&nbsp;" + lastUpdate + "</li>";
+                        "downloaded " + formatNumber(asset.download_count) + "&nbsp;times" + "</li>";
 
                     totalDownloadCount += asset.download_count;
                     releaseDownloadCount += asset.download_count;
@@ -171,9 +181,9 @@ function showStats(data) {
                         sourceforgeurl = apiSourceforge + project + "/files/" + releaseName + "/" + asset.name + "/stats/json" + date
                         let sfreleaseasset = sourceforceApi(sourceforgeurl)
                         if (sfreleaseasset.data) {
-                            sfassettotalcount = "downloaded " + formatNumber(sfreleaseasset.data.total) + "&nbsp;times. " + "Last&nbsp;updated&nbsp;on&nbsp;" + today
+                            sfassettotalcount = "downloaded " + formatNumber(sfreleaseasset.data.total) + "&nbsp;times"
                         } else {
-                            sfassettotalcount = "No data found for this file"
+                            sfassettotalcount = "The file is not available on Sourceforge. Maybe has been uploaded in different folder"
                         }
                         sf_downloadInfoHTML += "<li><code>" + asset.name + "</code> (" + assetSize + "&nbsp;MiB) - " + sfassettotalcount + "</li>";
                     }
@@ -302,7 +312,6 @@ function showStats(data) {
 function getStats(page, perPage) {
     var user = $("#username").val();
     var repository = $("#repository").val();
-    var sourceforge = $("#sourceforge").val();
     var url = apiRoot + "repos/" + user + "/" + repository + "/releases" +
         "?page=" + page + "&per_page=" + perPage;
 

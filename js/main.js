@@ -1,23 +1,48 @@
-var apiRoot = "https://api.github.com/";
-var apiSourceforge = "https://sourceforge.net/projects/";
+const apiRoot = "https://api.github.com/";
+const apiSourceforge = "https://sourceforge.net/projects/";
 
-// Return a HTTP query variable
-function getQueryVariable(variable) {
-    var query = window.location.search.substring(1);
-    var vars = query.split("&");
-    for(var i = 0; i < vars.length; i++) {
-        var pair = vars[i].split("=");
-        if(pair[0] == variable) {
-            return pair[1];
-        }
+/**
+ * Récupère la valeur d'un paramètre de l'URL
+ * @param {string} variable - Le nom du paramètre à récupérer
+ * @returns {string} La valeur du paramètre ou une chaîne vide si non trouvé
+ */
+const getQueryVariable = (variable) => {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        return decodeURIComponent(params.get(variable) || '');
+    } catch (error) {
+        console.error(`Error getting query parameter ${variable}:`, error);
+        return '';
     }
-    return "";
-}
+};
 
-// Format numbers
-function formatNumber(value) {
-    return value.toString().replace(/(\d)(?=(\d{3})+$)/g, '$1,')
-}
+
+/**
+ * Formate un nombre avec des séparateurs de milliers
+ * @param {number|string} value - Le nombre à formater
+ * @param {string} [locale='fr-FR'] - La locale à utiliser pour le formatage
+ * @returns {string} Le nombre formaté avec les séparateurs de milliers
+ */
+const formatNumber = (value, locale = 'fr-FR') => {
+    try {
+        // Conversion en nombre si c'est une chaîne
+        const numValue = typeof value === 'string' ? parseFloat(value) : value;
+        
+        // Vérification si c'est un nombre valide
+        if (isNaN(numValue)) {
+            console.warn(`Invalid number value: ${value}`);
+            return '0';
+        }
+
+        // Utilisation de l'API Intl.NumberFormat pour un formatage localisé
+        return new Intl.NumberFormat(locale, {
+            maximumFractionDigits: 0
+        }).format(numValue);
+    } catch (error) {
+        console.error('Error formatting number:', error);
+        return value?.toString() || '0';
+    }
+};
 
 // Validate the user input
 function validateInput() {
